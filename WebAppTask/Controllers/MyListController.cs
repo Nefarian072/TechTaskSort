@@ -58,21 +58,4 @@ public class MyListController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
-
-
-    [HttpPost("write-file")]
-    public async Task<IActionResult> WriteFile([FromBody] MyList list)
-    {
-        try
-        {
-            var command = _mapper.Map<WriteFileCommand>(list);
-            var result = await _mediator.Send(command);
-            return Ok(_mapper.Map<WriteFileCommandResult>(result));
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
-    }
-
 }

@@ -1,0 +1,129 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Форма Импорта и Сортировки</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .left-column, .right-column {
+            width: 45%;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="left-column">
+            <h2>Импорт</h2>
+            <input type="file" id="fileInput" accept=".txt"><br><br>
+            <textarea id="importText" placeholder="Текст из файла будет отображен здесь" readonly></textarea>
+        </div>
+        <div class="right-column">
+            <h2>Сортировка</h2>
+            <select id="sortingOptions">
+                <option value="Normal">Normal</option>
+                <option value="Ask">Ask</option>
+                <option value="Desc">Desc</option>
+                <option value="Reverse">Reverse</option>
+            </select><br><br>
+            <button onclick="sortAndDisplay()">Сортировать</button><br><br>
+            <textarea id="sortedText" placeholder="Отсортированный текст будет отображен здесь" readonly></textarea><br><br>
+            <button onclick="exportText()">Экспорт</button>
+            <a id="downloadLink" style="display: none;">Скачать файл</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('fileInput').addEventListener('change', loadFile);
+
+        async function loadFile() {
+            try {
+
+                const file = document.getElementById('fileInput').files[0];
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch('/api/MyList/read-file', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Ошибка чтения файла');
+                }
+
+                const data = await response.json();
+                const importedText = data.items.join(', ');
+                document.getElementById('importText').value = importedText;
+                console.log(data.items);
+            }
+            catch (error) {
+                alert('Произошла ошибка: ' + error.message);
+                console.error(error);
+            }
+        }
+
+        async function sortAndDisplay() {
+            try {
+
+                const sortTypeIndex = document.getElementById('sortingOptions').selectedIndex;
+                const data = document.getElementById('importText').value;
+
+                console.log(sortTypeIndex);
+                console.log(data.split(', '));
+                console.log();
+
+                const tt = {
+                    items: data.split(', '),
+                    sortType: sortTypeIndex
+                }
+
+                const sortResponse = await fetch('/api/MyList/sort', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json;charset=utf-8'
+                    },
+                    body: JSON.stringify(tt)
+                });
+
+                if (!sortResponse.ok) {
+                    throw new Error('Ошибка сортировки');
+                }
+
+                const sortedData = await sortResponse.json();
+                const sortedText = sortedData.items.join(', ');
+                document.getElementById('sortedText').value = sortedText;
+                document.getElementById('downloadLink').style.display = 'block';
+            } catch (error) {
+                alert('Произошла ошибка: ' + error.message);
+                console.error(error);
+            }
+        }
+
+        async function exportText() {
+            let sortedText = document.getElementById('sortedText').value;
+            let element = document.createElement('a');
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(sortedText));
+            element.setAttribute('download', 'sorted_text.txt');
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+        }
+    </script>
+</body>
+</html>
